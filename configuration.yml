@@ -1,0 +1,9 @@
+---
+Paths:
+  - "/Users/mariusz/Development/TestDir"
+SyncTimeoutSec: 10
+LogConfig:
+  DetailedLogs: true
+  UseJsonFormatter: false
+IgnoredFiles:
+  - .DS_Store
