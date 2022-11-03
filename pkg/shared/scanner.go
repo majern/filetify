@@ -8,9 +8,8 @@ import (
 	"time"
 )
 
-func ScanFiles(paths []string) {
+func ScanFiles(paths []string, ignoredFilesRegex []string) {
 	logrus.Info("Scanning files...")
-	ignoredFilesRegex := GetConfiguration().IgnoredFiles
 
 	for _, path := range paths {
 		//ScanSinglePath(path)
@@ -41,7 +40,7 @@ func scanRecursive(path string, ignoredFilesRegex []string) {
 		}
 
 		entry := NewFileEntry(entryPath, entry.IsDir(), time.Now(), Scanned)
-		CacheFile(entryPath, *entry)
+		CacheFile(entryPath, entry)
 	}
 }
 

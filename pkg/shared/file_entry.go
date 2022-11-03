@@ -16,7 +16,7 @@ type FileEntry struct {
 type FileOperation int8
 
 const (
-	Scanned = iota
+	Scanned FileOperation = iota
 	New
 	Modified
 	Deleted

@@ -1,0 +1,13 @@
+syntax = "proto3";
+import "proto/v1/requests.proto";
+import "proto/v1/responses.proto";
+
+package proto.v1;
+option go_package = "proto.v1";
+
+service SynchronizationService {
+  rpc StartSynchronization(StartSynchronizationRequest) returns (StartSynchronizationResponse) {};
+  rpc FinishSynchronization(FinishSynchronizationRequest) returns (FinishSynchronizationResponse) {};
+  rpc UploadFile(stream UploadFileRequest) returns (UploadFileResponse) {};
+  rpc DownloadFile(DownloadFileRequest) returns(stream DownloadFileResponse) {};
+}

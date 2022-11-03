@@ -1,21 +1,19 @@
-package shared
+package server
 
 import (
+	"github.com/msoft-dev/filetify/pkg/shared"
 	"github.com/spf13/viper"
 	"log"
 	"sync"
 )
 
 type Configuration struct {
-	Paths          []string  `yaml:"Paths"`
-	SyncTimeoutSec int       `yaml:"SyncTimeoutSec"`
-	LogConfig      LogConfig `yaml:"LogConfig"`
-	IgnoredFiles   []string  `yaml:"IgnoredFiles"`
+	Rcp       RcpConfig        `yaml:"RCP"`
+	LogConfig shared.LogConfig `yaml:"LogConfig"`
 }
 
-type LogConfig struct {
-	DetailedLogs     bool `yaml:"DetailedLogs"`
-	UseJsonFormatter bool `yaml:"UseJsonFormatter"`
+type RcpConfig struct {
+	Port int16 `yaml:"Port"`
 }
 
 var configInstanceLock sync.Once

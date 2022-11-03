@@ -1,0 +1,6 @@
+---
+RCP:
+  Port: 2022
+LogConfig:
+  DetailedLogs: true
+  UseJsonFormatter: false

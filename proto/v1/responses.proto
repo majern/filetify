@@ -1,0 +1,30 @@
+syntax = "proto3";
+import "proto/v1/messages.proto";
+
+package proto.v1;
+option go_package = "proto.v1";
+
+enum FileTransferStatus {
+  FILE_TRANSFER_STATUS_UNSPECIFIED = 0;
+  FILE_TRANSFER_STATUS_OK = 1;
+  FILE_TRANSFER_STATUS_FAILED = 2;
+}
+
+message StartSynchronizationResponse {
+  repeated ServerFileSyncInfo files = 1;
+}
+
+message FinishSynchronizationResponse {}
+
+message UploadFileResponse {
+  FileTransferStatus status = 1;
+}
+
+message DownloadFileResponse {
+  string path = 1;
+  uint64 index = 2;
+  uint64 length = 3;
+  bytes data = 4;
+  uint64 total_parts = 5;
+  uint64 total_length = 6;
+}

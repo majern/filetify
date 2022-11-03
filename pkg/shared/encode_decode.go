@@ -4,20 +4,16 @@ import (
 	"bytes"
 	"compress/gzip"
 	"encoding/gob"
+	"fmt"
 	"io"
 	"log"
 )
 
-func Encode[T any](obj T) []byte {
+func Encode[T any](obj *T) []byte {
 
 	buffer := bytes.Buffer{}
 	enc := gob.NewEncoder(&buffer)
-	err := enc.Encode(obj)
-
-	if err != nil {
-		log.Fatal(err)
-		return nil
-	}
+	HandleErrorWithMsg(enc.Encode(*obj), true, fmt.Sprintf("Failed to encode object '%T'", obj))
 
 	result := buffer.Bytes()
 
@@ -29,11 +25,7 @@ func Encode[T any](obj T) []byte {
 func Decode[T any](buffer []byte) *T {
 	var result *T
 	dec := gob.NewDecoder(bytes.NewReader(buffer))
-	err := dec.Decode(&result)
-	if err != nil {
-		log.Fatal(err)
-		return nil
-	}
+	HandleErrorWithMsg(dec.Decode(&result), true, fmt.Sprintf("Failed to decode object '%T'", result))
 
 	//log.Printf("Object %v decoded. Size: %d", result, len(buffer))
 

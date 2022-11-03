@@ -1,7 +1,6 @@
 package cmd
 
 import (
-	"github.com/msoft-dev/filetify/pkg/shared"
 	"log"
 	"os"
 
@@ -57,5 +56,5 @@ func initConfig() {
 		log.Fatalf("An error occured during loading '%v' configuration file: %v \n", viper.ConfigFileUsed(), err)
 	}
 
-	log.Printf("Configuration file loaded: %+v\n", *shared.GetConfiguration())
+	log.Printf("Configuration file loaded: %v\n", cfgFile)
 }

@@ -7,9 +7,9 @@ import (
 )
 
 func StartClient() {
-	shared.InitLogger()
+	shared.InitLogger(&GetConfiguration().LogConfig)
 	//TODO: This should be rewrited to use https://github.com/kardianos/service and https://github.com/madflojo/tasks
-	logrus.WithTime(time.Now()).Info("Starting client")
+	logrus.Info("Starting client")
 
 	scanFiles()
 
@@ -22,11 +22,11 @@ func StartClient() {
 }
 
 func scanFiles() {
-	shared.ScanFiles(shared.GetConfiguration().Paths)
+	shared.ScanFiles(GetConfiguration().Paths, GetConfiguration().IgnoredFiles)
 }
 
 func startFileWatcher() {
-	paths := shared.GetConfiguration().Paths
+	paths := GetConfiguration().Paths
 
 	for _, path := range paths {
 		go WatchFilesInPath(path)
@@ -34,10 +34,9 @@ func startFileWatcher() {
 }
 
 func scheduleSynchronization() {
-	var interval = shared.GetConfiguration().SyncTimeoutSec
+	var interval = GetConfiguration().SyncTimeoutSec
 	for {
 		time.Sleep(time.Duration(interval) * time.Second)
-		logrus.Info("File synchronization started")
-		shared.GetAllFromCache()
+		go Synchronize()
 	}
 }

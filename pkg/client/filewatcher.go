@@ -7,6 +7,7 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"time"
 )
 
 var watcher *fsnotify.Watcher
@@ -16,7 +17,7 @@ func WatchFilesInPath(dir string) {
 	watcher, _ = fsnotify.NewWatcher()
 
 	defer func(watcher *fsnotify.Watcher) {
-		watcher.Close()
+		shared.HandleError(watcher.Close(), false)
 		logrus.Warning("File watcher stopped")
 	}(watcher)
 
@@ -51,7 +52,7 @@ func WatchFilesInPath(dir string) {
 }
 
 func handleOperation(event fsnotify.Event) {
-	ignoredFilesRegex := shared.GetConfiguration().IgnoredFiles
+	ignoredFilesRegex := GetConfiguration().IgnoredFiles
 	deleted := fsnotify.Remove | fsnotify.Rename
 
 	if !shared.IsFileIgnored(event.Name, ignoredFilesRegex) {
@@ -59,7 +60,7 @@ func handleOperation(event fsnotify.Event) {
 		case fsnotify.Write:
 			handleUpdated(&event)
 		case fsnotify.Create:
-			handleCreated(&event)
+			handleCreated(&event, ignoredFilesRegex)
 		case fsnotify.Remove, fsnotify.Rename, deleted:
 			handleDeleted(&event)
 
@@ -84,7 +85,8 @@ func handleDeleted(event *fsnotify.Event) {
 		relatedKeys := shared.GetAllKeysFromCache()
 		for _, key := range relatedKeys {
 			if strings.Contains(key, fileEntry.Path) {
-				shared.UpdateFile(fileEntry.Path, shared.Deleted)
+				shared.UpdateFile(key, shared.Deleted)
+				logrus.WithField("file", key).Info("File DELETED")
 			}
 		}
 	}
@@ -92,17 +94,27 @@ func handleDeleted(event *fsnotify.Event) {
 	shared.UpdateFile(fileEntry.Path, shared.Deleted)
 }
 
-func handleCreated(event *fsnotify.Event) {
+func handleCreated(event *fsnotify.Event, ignoredFilesRegex []string) {
 	logrus.WithField("file", event.Name).Info("File CREATED") //Send new
+
+	if isDir(event.Name) {
+		shared.ScanFiles([]string{event.Name}, ignoredFilesRegex)
+		shared.HandleErrorWithMsg(filepath.Walk(event.Name, watchDir), true, "Failed to add directory to file watcher")
+		shared.CacheFile(event.Name, shared.NewFileEntry(event.Name, true, time.Now(), shared.New))
+	} else {
+		shared.CacheFile(event.Name, shared.NewFileEntry(event.Name, false, time.Now(), shared.New))
+	}
 }
 
 func handleUpdated(event *fsnotify.Event) {
-	logrus.WithField("file", event.Name).Info("File UPDATED") //Send new
+	logrus.WithField("file", event.Name).Info("File UPDATED")
+
+	shared.UpdateFile(event.Name, shared.Modified)
 }
 
 // watchDir gets run as a walk func, searching for directories to add watchers to.
 func watchDir(path string, fi os.FileInfo, err error) error {
-	ignoredFilesRegex := shared.GetConfiguration().IgnoredFiles
+	ignoredFilesRegex := GetConfiguration().IgnoredFiles
 
 	if fi.Mode().IsDir() && !shared.IsFileIgnored(path, ignoredFilesRegex) {
 		var err = watcher.Add(path)
@@ -118,4 +130,10 @@ func watchDir(path string, fi os.FileInfo, err error) error {
 	}
 
 	return nil
+}
+
+func isDir(path string) bool {
+	stat, err := os.Stat(path)
+	shared.HandleErrorWithMsg(err, true, "Failed to read file info")
+	return stat.IsDir()
 }

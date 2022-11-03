@@ -7,3 +7,5 @@ LogConfig:
   UseJsonFormatter: false
 IgnoredFiles:
   - .DS_Store
+RCP:
+  Endpoint: localhost:2022

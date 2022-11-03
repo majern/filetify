@@ -1,0 +1,43 @@
+syntax = "proto3";
+
+package proto.v1;
+option go_package = "proto.v1";
+
+import "google/protobuf/timestamp.proto";
+
+enum FileStatus {
+  FILE_STATUS_UNSPECIFIED = 0;
+  FILE_STATUS_SCANNED = 1;
+  FILE_STATUS_CREATED = 2;
+  FILE_STATUS_UPDATED = 3;
+  FILE_STATUS_REMOVED = 4;
+}
+
+enum FileAction {
+  FILE_ACTION_UNSPECIFIED = 0;
+  FILE_ACTION_UPLOAD = 1;
+  FILE_ACTION_DOWNLOAD = 2;
+  FILE_ACTION_REMOVE = 3;
+  FILE_ACTION_CREATE = 4;
+}
+
+message FileSyncInfo {
+  string path = 1;
+  FileStatus status = 2;
+  google.protobuf.Timestamp timestamp = 3;
+  bool is_dir = 4;
+}
+
+message ServerFileSyncInfo {
+  string path = 1;
+  google.protobuf.Timestamp timestamp = 2;
+  bool is_dir = 3;
+  FileAction action = 4;
+}
+
+message FilePart {
+  string path = 1;
+  uint64 index = 2;
+  uint64 length = 3;
+  bytes data = 4;
+}

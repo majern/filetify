@@ -24,7 +24,7 @@ func getCache() *bigcache.BigCache {
 	return cacheInstance
 }
 
-func CacheFile(path string, file FileEntry) error {
+func CacheFile(path string, file *FileEntry) error {
 	buff := Encode(file)
 	return getCache().Set(path, buff)
 }
@@ -45,7 +45,7 @@ func UpdateFile(path string, operation FileOperation) {
 	entry.Modified = time.Now()
 	entry.Operation = Deleted
 
-	CacheFile(path, *entry)
+	HandleError(CacheFile(path, entry), true)
 }
 
 func GetAllFromCache() []*FileEntry {

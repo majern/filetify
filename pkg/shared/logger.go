@@ -7,11 +7,16 @@ import (
 )
 
 var detailedLoggingLock sync.Once
-var logConfig LogConfig
+var logConfig *LogConfig
 
-func InitLogger() {
+type LogConfig struct {
+	DetailedLogs     bool `yaml:"DetailedLogs"`
+	UseJsonFormatter bool `yaml:"UseJsonFormatter"`
+}
+
+func InitLogger(logCfg *LogConfig) {
 	detailedLoggingLock.Do(func() {
-		logConfig = configInstance.LogConfig
+		logConfig = logCfg
 	})
 
 	if logConfig.UseJsonFormatter {
