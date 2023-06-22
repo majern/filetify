@@ -18,6 +18,7 @@ message FinishSynchronizationResponse {}
 
 message UploadFileResponse {
   FileTransferStatus status = 1;
+  //TODO: md5 sum to check if file is completed
 }
 
 message DownloadFileResponse {

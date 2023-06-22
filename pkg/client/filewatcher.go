@@ -1,6 +1,8 @@
 package client
 
 import (
+	"errors"
+	"fmt"
 	"github.com/fsnotify/fsnotify"
 	"github.com/msoft-dev/filetify/pkg/shared"
 	"github.com/sirupsen/logrus"
@@ -11,6 +13,7 @@ import (
 )
 
 var watcher *fsnotify.Watcher
+var basePaths map[string]string
 
 func WatchFilesInPath(dir string) {
 	logrus.Info("Initializing file watcher")
@@ -22,6 +25,13 @@ func WatchFilesInPath(dir string) {
 	}(watcher)
 
 	logrus.Info("Adding directories to file watcher...")
+	basePaths = make(map[string]string)
+	for _, path := range GetConfiguration().Paths {
+		dir := filepath.Dir(path)
+		parent := strings.ReplaceAll(path, dir, "")
+		basePaths[path] = parent
+	}
+
 	if err := filepath.Walk(dir, watchDir); err != nil {
 		logrus.WithError(err).Error("Failed to add directories to file watcher")
 		panic(err)
@@ -76,40 +86,46 @@ func handleOperation(event fsnotify.Event) {
 }
 
 func handleDeleted(event *fsnotify.Event) {
-	logrus.WithField("file", event.Name).Info("File DELETED") //Send deleted due to https://github.com/fsnotify/fsnotify/issues/529
-
-	fileEntry, err := shared.GetFileFromCache(event.Name)
+	relative, _, _ := getPaths(event.Name)
+	fileEntry, err := shared.GetFileFromCache(relative)
 	shared.HandleError(err, true)
+
+	logrus.WithField("path", relative).Info(fileOrDir(fileEntry.IsDir) + "DELETED") //Send deleted due to https://github.com/fsnotify/fsnotify/issues/529
 
 	if fileEntry.IsDir {
 		relatedKeys := shared.GetAllKeysFromCache()
 		for _, key := range relatedKeys {
-			if strings.Contains(key, fileEntry.Path) {
-				shared.UpdateFile(key, shared.Deleted)
-				logrus.WithField("file", key).Info("File DELETED")
+			if strings.Contains(key, relative) {
+				shared.UpdateFile(key, shared.Deleted, time.Now().UTC())
+				logrus.WithField("key", key).Info("KEY marked as DELETED")
 			}
 		}
 	}
 
-	shared.UpdateFile(fileEntry.Path, shared.Deleted)
+	shared.UpdateFile(relative, shared.Deleted, time.Now().UTC())
 }
 
 func handleCreated(event *fsnotify.Event, ignoredFilesRegex []string) {
-	logrus.WithField("file", event.Name).Info("File CREATED") //Send new
+	relative, parent, base := getPaths(event.Name)
+	fileInfo, _ := os.Stat(event.Name)
 
-	if isDir(event.Name) {
-		shared.ScanFiles([]string{event.Name}, ignoredFilesRegex)
+	logrus.WithField("path", relative).Info(fileOrDir(fileInfo.IsDir()) + "CREATED") //Send new
+
+	if fileInfo.IsDir() {
+		shared.ScanRecursive(event.Name, base, parent, ignoredFilesRegex, shared.New)
 		shared.HandleErrorWithMsg(filepath.Walk(event.Name, watchDir), true, "Failed to add directory to file watcher")
-		shared.CacheFile(event.Name, shared.NewFileEntry(event.Name, true, time.Now(), shared.New))
+		shared.CacheFile(relative, shared.NewFileEntry(relative, event.Name, true, fileInfo.ModTime().UTC(), shared.New))
 	} else {
-		shared.CacheFile(event.Name, shared.NewFileEntry(event.Name, false, time.Now(), shared.New))
+		shared.CacheFile(relative, shared.NewFileEntry(relative, event.Name, false, fileInfo.ModTime().UTC(), shared.New))
 	}
 }
 
 func handleUpdated(event *fsnotify.Event) {
-	logrus.WithField("file", event.Name).Info("File UPDATED")
+	relative, _, _ := getPaths(event.Name)
+	fileInfo, _ := os.Stat(event.Name)
+	logrus.WithField("path", relative).Info(fileOrDir(fileInfo.IsDir()) + "UPDATED")
 
-	shared.UpdateFile(event.Name, shared.Modified)
+	shared.UpdateFile(relative, shared.Modified, fileInfo.ModTime().UTC())
 }
 
 // watchDir gets run as a walk func, searching for directories to add watchers to.
@@ -132,8 +148,27 @@ func watchDir(path string, fi os.FileInfo, err error) error {
 	return nil
 }
 
+func getPaths(path string) (relative, parent, base string) {
+	for k, v := range basePaths {
+		if strings.Contains(path, k) {
+			return strings.ReplaceAll(path, k, v), v, k
+		}
+	}
+
+	shared.HandleErrorWithMsg(errors.New(fmt.Sprintf("Cannot find relative path for physical path='%v'", path)), true, "Error while getting relative path")
+	return path, "", ""
+}
+
 func isDir(path string) bool {
 	stat, err := os.Stat(path)
 	shared.HandleErrorWithMsg(err, true, "Failed to read file info")
 	return stat.IsDir()
+}
+
+func fileOrDir(isDir bool) string {
+	if isDir {
+		return "DIR "
+	}
+
+	return "FILE "
 }

@@ -22,17 +22,23 @@ enum FileAction {
 }
 
 message FileSyncInfo {
-  string path = 1;
-  FileStatus status = 2;
-  google.protobuf.Timestamp timestamp = 3;
-  bool is_dir = 4;
+  string key = 1;
+  string path = 2;
+  FileStatus status = 3;
+  google.protobuf.Timestamp timestamp = 4;
+  bool is_dir = 5;
+}
+
+message CacheDump {
+  repeated bytes files = 1;
 }
 
 message ServerFileSyncInfo {
-  string path = 1;
-  google.protobuf.Timestamp timestamp = 2;
-  bool is_dir = 3;
-  FileAction action = 4;
+  string key = 1;
+  string path = 2;
+  google.protobuf.Timestamp timestamp = 3;
+  bool is_dir = 4;
+  FileAction action = 5;
 }
 
 message FilePart {

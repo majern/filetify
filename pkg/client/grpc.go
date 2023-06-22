@@ -9,10 +9,9 @@ import (
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/credentials/insecure"
 	"google.golang.org/grpc/status"
-	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
-func getConn() (conn *grpc.ClientConn, ok bool) {
+func GetConn() (conn *grpc.ClientConn, ok bool) {
 	opts := []grpc.DialOption{
 		grpc.WithTransportCredentials(insecure.NewCredentials()),
 	}
@@ -32,32 +31,51 @@ func getConn() (conn *grpc.ClientConn, ok bool) {
 	return conn, true
 }
 
-func StartSynchronization() (entries []*shared.SyncEntry, ok bool) {
-	conn, ok := getConn()
-	if !ok {
-		return nil, false
-	}
-
-	defer conn.Close()
+func StartSynchronization(conn *grpc.ClientConn) (entries []*shared.SyncEntry) {
 
 	client := proto_v1.NewSynchronizationServiceClient(conn)
 
 	res, err := client.StartSynchronization(context.Background(), getStartSyncReq())
-	st, _ := status.FromError(err)
+
 	if err != nil {
-		switch st.Code() {
-		case codes.Aborted:
-		case codes.Unavailable:
-			logrus.WithField("message", st.Message()).Warning("Failed to perform synchronization with server")
-		default:
-			shared.HandleErrorWithMsg(err, true, "Failed to perform synchronization with server")
-		}
-		return nil, false
+		handleSyncError(err)
+		return nil
 	}
 
 	logrus.WithField("response", res).Info("Synchronization started")
 
-	return getEntryFromStartSyncRes(res), true
+	return getEntryFromStartSyncRes(res)
+}
+
+func UploadFile(conn *grpc.ClientConn, entry *shared.SyncEntry) {
+	client := proto_v1.NewSynchronizationServiceClient(conn)
+
+	stream, err := client.UploadFile(context.Background())
+
+	if err != nil {
+		handleSyncError(err)
+	}
+
+	//TODO: Get file from hard drive
+	parts, _ := shared.LoadFile(entry.Path)
+	logrus.WithField("parts-count", len(parts))
+	//TODO: Get parts from file and foreach do stream send.
+
+	err = stream.Send(&proto_v1.UploadFileRequest{})
+
+	if err != nil {
+		shared.HandleErrorWithMsg(err, true, "Failed to upload file")
+	}
+}
+
+func handleSyncError(err error) {
+	st, _ := status.FromError(err)
+	switch st.Code() {
+	case codes.Aborted, codes.Unavailable:
+		logrus.WithField("message", st.Message()).Warning("Failed to perform synchronization with server")
+	default:
+		shared.HandleErrorWithMsg(err, true, "Failed to perform synchronization with server")
+	}
 }
 
 func getStartSyncReq() *proto_v1.StartSynchronizationRequest {
@@ -65,13 +83,7 @@ func getStartSyncReq() *proto_v1.StartSynchronizationRequest {
 	var filesToSynchronize []*proto_v1.FileSyncInfo
 
 	for _, entry := range filesFromCache {
-		fileSyncInfo := &proto_v1.FileSyncInfo{
-			Path:      entry.Path,
-			Status:    proto_v1.FileStatus(entry.Operation + 1),
-			Timestamp: timestamppb.New(entry.Modified),
-			IsDir:     entry.IsDir,
-		}
-
+		fileSyncInfo := entry.ToProto()
 		filesToSynchronize = append(filesToSynchronize, fileSyncInfo)
 	}
 
@@ -83,6 +95,7 @@ func getEntryFromStartSyncRes(res *proto_v1.StartSynchronizationResponse) []*sha
 
 	for _, file := range res.Files {
 		entry := &shared.SyncEntry{
+			Key:       file.Key,
 			IsDir:     file.IsDir,
 			Path:      file.Path,
 			Action:    shared.SyncAction(file.Action - 1),

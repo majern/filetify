@@ -1,11 +1,12 @@
 ---
 Paths:
-  - "/Users/mariusz/Development/TestDir"
+  - "/Users/mariusz/Development/Client/TestDir"
 SyncTimeoutSec: 10
 LogConfig:
   DetailedLogs: true
   UseJsonFormatter: false
 IgnoredFiles:
   - .DS_Store
+  - .sb-([A-Za-z0-9]+(-[A-Za-z0-9]+)+) #This is a temp file pattern created in macOs when text file is being edited
 RCP:
   Endpoint: localhost:2022

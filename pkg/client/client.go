@@ -12,17 +12,25 @@ func StartClient() {
 	logrus.Info("Starting client")
 
 	scanFiles()
+	updateCacheFromDump()
 
 	//Start FileWatcher
 	startFileWatcher()
 
 	//Schedule Synchronization
 	go scheduleSynchronization()
+
+	//Schedule cache dump
+	go scheduleDumpCacheToFile()
 	select {}
 }
 
 func scanFiles() {
-	shared.ScanFiles(GetConfiguration().Paths, GetConfiguration().IgnoredFiles)
+	shared.ScanFiles(GetConfiguration().Paths, false, GetConfiguration().IgnoredFiles)
+}
+
+func updateCacheFromDump() {
+	shared.UpdateCacheFromDump()
 }
 
 func startFileWatcher() {
@@ -38,5 +46,15 @@ func scheduleSynchronization() {
 	for {
 		time.Sleep(time.Duration(interval) * time.Second)
 		go Synchronize()
+	}
+}
+
+// scheduleDumpCacheToFile dumps the cache to the file
+// Deprecated: TODO: it should be called when close app signal comes from the system
+func scheduleDumpCacheToFile() {
+	var interval = GetConfiguration().SyncTimeoutSec
+	for {
+		time.Sleep(time.Duration(interval*10) * time.Second)
+		go shared.DumpToFile()
 	}
 }

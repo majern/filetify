@@ -13,6 +13,7 @@ func StartServer() {
 	shared.InitLogger(&GetConfiguration().LogConfig)
 	logrus.Info("Starting server")
 
+	scanFiles()
 	startGrpcServer()
 
 	select {}
@@ -26,4 +27,8 @@ func startGrpcServer() {
 	proto_v1.RegisterSynchronizationServiceServer(grpcServer, &synchronizationService{})
 	go grpcServer.Serve(lis)
 	logrus.Infof("Server started. Listening on: %+v", lis.Addr())
+}
+
+func scanFiles() {
+	shared.ScanFiles([]string{GetConfiguration().StorePath}, true, GetConfiguration().IgnoredFiles)
 }

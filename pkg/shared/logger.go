@@ -25,7 +25,7 @@ func InitLogger(logCfg *LogConfig) {
 		textFormatter := new(logrus.TextFormatter)
 		textFormatter.ForceColors = true
 		textFormatter.FullTimestamp = true
-		textFormatter.TimestampFormat = "2006-01-02 12:13:15.000"
+		textFormatter.TimestampFormat = "2006-01-02 15:04:05.000"
 		textFormatter.ForceQuote = true
 		textFormatter.PadLevelText = true
 		textFormatter.DisableLevelTruncation = true

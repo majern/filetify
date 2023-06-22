@@ -159,7 +159,7 @@ type UploadFileResponse struct {
 	sizeCache     protoimpl.SizeCache
 	unknownFields protoimpl.UnknownFields
 
-	Status FileTransferStatus `protobuf:"varint,1,opt,name=status,proto3,enum=proto.v1.FileTransferStatus" json:"status,omitempty"`
+	Status FileTransferStatus `protobuf:"varint,1,opt,name=status,proto3,enum=proto.v1.FileTransferStatus" json:"status,omitempty"` //TODO: md5 sum to check if file is completed
 }
 
 func (x *UploadFileResponse) Reset() {

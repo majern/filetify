@@ -4,3 +4,7 @@ RCP:
 LogConfig:
   DetailedLogs: true
   UseJsonFormatter: false
+StorePath: "/Users/mariusz/Development/Server/"
+IgnoredFiles:
+  - .DS_Store
+  - .sb-([A-Za-z0-9]+(-[A-Za-z0-9]+)+) #This is a temp file pattern created in macOs when text file is being edited

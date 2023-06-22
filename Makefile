@@ -10,4 +10,4 @@ gen:
 	go mod tidy
 
 clean:
-	rm pkg/proto/*.go
+	rm pkg/proto/**/*.go

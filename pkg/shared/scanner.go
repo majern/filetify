@@ -5,42 +5,48 @@ import (
 	"os"
 	"path/filepath"
 	"regexp"
-	"time"
+	"strings"
 )
 
-func ScanFiles(paths []string, ignoredFilesRegex []string) {
+func ScanFiles(paths []string, serverScan bool, ignoredFilesRegex []string) {
 	logrus.Info("Scanning files...")
 
-	for _, path := range paths {
-		//ScanSinglePath(path)
-		scanRecursive(path, ignoredFilesRegex)
+	if serverScan {
+		ScanRecursive(paths[0], paths[0], "/", ignoredFilesRegex, Scanned)
+	} else {
+		for _, path := range paths {
+			dir := filepath.Dir(path)
+			parent := strings.ReplaceAll(path, dir, "")
+			ScanRecursive(path, path, parent, ignoredFilesRegex, Scanned)
+		}
 	}
 
 	logrus.Info("File scanning completed.")
 }
 
-func scanRecursive(path string, ignoredFilesRegex []string) {
-	entries, _ := os.ReadDir(path)
+func ScanRecursive(sourcePath, basePath, relativePath string, ignoredFilesRegex []string, fileOp FileOperation) {
+	entries, _ := os.ReadDir(sourcePath)
 
 	for _, entry := range entries {
-		entryPath := filepath.Join(path, entry.Name())
-		logger := logrus.WithField("path", entryPath)
+		entryKey := strings.ReplaceAll(filepath.Join(sourcePath, entry.Name()), basePath, relativePath)
+		logger := logrus.WithField("path", entryKey)
 
-		if IsFileIgnored(entryPath, ignoredFilesRegex) {
+		if IsFileIgnored(entryKey, ignoredFilesRegex) {
 			continue
 		}
 
 		if entry.IsDir() {
 			logger.Debug("DIR Scanned")
 
-			scanRecursive(entryPath, ignoredFilesRegex)
+			ScanRecursive(filepath.Join(sourcePath, entry.Name()), basePath, relativePath, ignoredFilesRegex, fileOp)
 
 		} else {
 			logger.Debug("FILE Scanned")
 		}
 
-		entry := NewFileEntry(entryPath, entry.IsDir(), time.Now(), Scanned)
-		CacheFile(entryPath, entry)
+		info, _ := entry.Info()
+		fileEntry := NewFileEntry(entryKey, filepath.Join(sourcePath, entry.Name()), entry.IsDir(), info.ModTime().UTC(), fileOp)
+		CacheFile(entryKey, fileEntry)
 	}
 }
 

@@ -8,8 +8,10 @@ import (
 )
 
 type Configuration struct {
-	Rcp       RcpConfig        `yaml:"RCP"`
-	LogConfig shared.LogConfig `yaml:"LogConfig"`
+	Rcp          RcpConfig        `yaml:"RCP"`
+	LogConfig    shared.LogConfig `yaml:"LogConfig"`
+	StorePath    string           `yaml:"StorePath"`
+	IgnoredFiles []string         `yaml:"IgnoredFiles"`
 }
 
 type RcpConfig struct {
